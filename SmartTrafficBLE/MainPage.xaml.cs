@@ -101,6 +101,7 @@ namespace SmartTrafficBLE
                         if (!dicVeiculos.ContainsKey(id))
                         {
                             dicVeiculos.TryAdd(id, beaconFrame);
+                            Debug.WriteLine("Incluiu");
 
                             timer.Cancel();
                             timer = ThreadPoolTimer.CreatePeriodicTimer(Amb_Tick, TimeSpan.FromSeconds(15));
