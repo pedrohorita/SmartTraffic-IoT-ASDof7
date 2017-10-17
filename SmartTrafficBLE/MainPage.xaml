@@ -8,6 +8,34 @@
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <TextBlock x:Name="BeaconInfo">Beacon Reader</TextBlock>
+        <StackPanel x:Name="MyStackPanel">
+            <StackPanel  Height="70" Width="540" Orientation="Horizontal">
+                <Image Width="70" Source="Assets/emergencia.jpg" />
+                <TextBlock FontSize="40" FontWeight="Bold"  x:Name="Title">Monitor Smart Traffic</TextBlock>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock FontSize="30" FontWeight="Bold" x:Name="TrafficState">Estado Atual: </TextBlock>
+                <TextBlock FontSize="30" FontStyle="Italic"  x:Name="TrafficStateValue">Operação Normal</TextBlock>
+            </StackPanel>
+            <TextBlock FontSize="30" FontWeight="Bold" x:Name="ListaLabel">Viaturas Próximas:</TextBlock>
+
+            <ListView x:Name="listView1">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="47"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <Image Source="Assets/sirene.png" Width="32" Height="32" 
+                       HorizontalAlignment="Left"/>
+                            <TextBlock Text="{x:Bind}" Foreground="Teal" 
+                           FontSize="15" Grid.Column="1"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+        </StackPanel>
     </Grid>
 </Page>

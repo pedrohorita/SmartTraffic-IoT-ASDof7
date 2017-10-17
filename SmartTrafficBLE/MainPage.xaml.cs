@@ -20,6 +20,8 @@ using Windows.System.Threading;
 using Windows.Devices.Gpio;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using Windows.ApplicationModel.Core;
+using Windows.UI.Core;
 
 namespace SmartTrafficBLE
 {
@@ -34,8 +36,6 @@ namespace SmartTrafficBLE
         private GpioPinValue value1 = GpioPinValue.High;
         private GpioPinValue value2 = GpioPinValue.Low;
 
-
-
         private const int LED_pinVerde1 = 27; //Verde
         private const int LED_pinVervelho1 = 21; //Vermelho
         private const int LED_pinVervelho2 = 20; //Vermelho
@@ -46,7 +46,7 @@ namespace SmartTrafficBLE
         private const int LED_pinVerde4 = 22; //Verde
 
 
-        private GpioPin pinVerde1;  
+        private GpioPin pinVerde1;
         private GpioPin pinVervelho1;
         private GpioPin pinVervelho2;
         private GpioPin pinVerde2;
@@ -84,7 +84,7 @@ namespace SmartTrafficBLE
 
             if (eventArgs.Advertisement.ManufacturerData.Any())
             {
-                
+
                 foreach (var manufacturerData in eventArgs.Advertisement.ManufacturerData)
                 {
                     // Print the company ID + the raw data in hex format
@@ -96,7 +96,7 @@ namespace SmartTrafficBLE
                     if (IsProximityBeaconPayload(manufacturerData.CompanyId, manufacturerDataArry) && eventArgs.RawSignalStrengthInDBm > -60)
                     {
                         var beaconFrame = new ProximityBeaconFrame(manufacturerDataArry);
-                        string id = ((ProximityBeaconFrame)beaconFrame).UuidAsString +'|'+ eventArgs.BluetoothAddress;
+                        string id = ((ProximityBeaconFrame)beaconFrame).UuidAsString + '|' + eventArgs.BluetoothAddress;
                         beaconFrame.time = DateTime.Now;
                         if (!dicVeiculos.ContainsKey(id))
                         {
@@ -104,7 +104,13 @@ namespace SmartTrafficBLE
                             Debug.WriteLine("Incluiu");
 
                             timer.Cancel();
-                            timer = ThreadPoolTimer.CreatePeriodicTimer(Amb_Tick, TimeSpan.FromSeconds(15));
+                            timer = ThreadPoolTimer.CreatePeriodicTimer(Amb_TickAsync, TimeSpan.FromSeconds(15));
+
+                            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                            {
+                                TrafficStateValue.Text = "Operação Especial";
+                            });
+
                             PiscaVerde();
                             PiscaVerde();
                             PiscaVerde();
@@ -112,31 +118,27 @@ namespace SmartTrafficBLE
                             Debug.WriteLine("Muda Timer");
                             Debug.WriteLine("iBeacon Frame: " + BitConverter.ToString(manufacturerDataArry));
 
-
                             Debug.WriteLine("iBeacon UUID: " + ((ProximityBeaconFrame)beaconFrame).UuidAsString);
                             Debug.WriteLine("iBeacon Major: " + ((ProximityBeaconFrame)beaconFrame).Major);
                             Debug.WriteLine("iBeacon Minor: " + ((ProximityBeaconFrame)beaconFrame).Minor);
 
-
-
-
-
+                            
                             await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
                             {
-                                // Display these information on the Screen
-                                BeaconInfo.Text = "Last Beacon: " + eventArgs.BluetoothAddress
-                                    + "\nRSSI: " + eventArgs.RawSignalStrengthInDBm;
-                            });
-                        }
-                        
+                                listView1.Items.Add(id + "\nSinal: " + eventArgs.RawSignalStrengthInDBm
+                                    + "\nData\\Hora: " + DateTime.Now);
 
-                        
+                                listView1.Items.Remove("Nenhuma viatura próximo!");
+
+                            });
+                            
+                        }
 
                     }
-                    
+
                 }
             }
-            
+
         }
 
         public static bool IsProximityBeaconPayload(ushort companyId, byte[] manufacturerData)
@@ -177,10 +179,6 @@ namespace SmartTrafficBLE
             pinVerde4.Write(GpioPinValue.Low);
 
 
-
-
-
-
             pinVerde3.SetDriveMode(GpioPinDriveMode.Output);
             pinVervelho3.SetDriveMode(GpioPinDriveMode.Output);
             pinVervelho4.SetDriveMode(GpioPinDriveMode.Output);
@@ -189,6 +187,14 @@ namespace SmartTrafficBLE
 
         private void Timer_Tick(ThreadPoolTimer timer)
         {
+
+            Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                TrafficStateValue.Text = "Operação Normal";
+                listView1.Items.Clear();
+                listView1.Items.Add("Nenhuma viatura próximo!");
+            });
+
             Debug.WriteLine("Timer_Tick");
             value1 = (value1 == GpioPinValue.High) ? GpioPinValue.Low : GpioPinValue.High;
             value2 = (value2 == GpioPinValue.High) ? GpioPinValue.Low : GpioPinValue.High;
@@ -205,13 +211,11 @@ namespace SmartTrafficBLE
             pinVervelho4.Write(value1);
             pinVerde4.Write(value2);
 
-            
         }
 
-        private void Amb_Tick(ThreadPoolTimer timer)
+        private void Amb_TickAsync(ThreadPoolTimer timer)
         {
             Debug.WriteLine("Amb_Tick");
-            
 
             value1 = (value1 == GpioPinValue.High) ? GpioPinValue.High : GpioPinValue.High;
             value2 = (value2 == GpioPinValue.High) ? GpioPinValue.Low : GpioPinValue.Low;
@@ -224,7 +228,7 @@ namespace SmartTrafficBLE
             pinVervelho3.Write(value2);
             pinVervelho4.Write(value1);
             pinVerde4.Write(value2);
-            
+
             if (timerNormalize != null)
             {
                 timerNormalize.Cancel();
@@ -235,6 +239,7 @@ namespace SmartTrafficBLE
         private void Normalize(ThreadPoolTimer timer)
         {
             Debug.WriteLine("Normalize");
+
             timerNormalize.Cancel();
             this.timer.Cancel();
             this.timer = ThreadPoolTimer.CreatePeriodicTimer(Timer_Tick, TimeSpan.FromSeconds(5));
@@ -250,9 +255,6 @@ namespace SmartTrafficBLE
             pinVervelho3.Write(value2);
             pinVervelho4.Write(value1);
             pinVerde4.Write(value2);
-
-
-
 
         }
 
@@ -280,13 +282,11 @@ namespace SmartTrafficBLE
             pinVervelho4.Write(GpioPinValue.High);
             pinVerde4.Write(GpioPinValue.Low);
 
-
-           
-
         }
 
         private void RemoveFromDic(ThreadPoolTimer timer)
-        {
+        {  
+            
             Debug.WriteLine("RemoveFromDic");
             foreach (string key in dicVeiculos.Keys)
             {
@@ -296,7 +296,9 @@ namespace SmartTrafficBLE
                     dicVeiculos.TryRemove(key, out b);
                     Debug.WriteLine("Removeu");
                 }
+                
             }
+
         }
     }
 }
